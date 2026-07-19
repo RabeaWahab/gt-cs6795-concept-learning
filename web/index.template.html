@@ -1,0 +1,578 @@
+<script id="results-data" type="application/json">/*__RESULTS_JSON__*/</script>
+
+<style>
+  /* ---- token system: a psychophysics "scientific plate" ------------------ */
+  :root {
+    --paper:      #e8e9e6;   /* cool newsprint, deliberately not cream */
+    --panel:      #f3f3f1;
+    --ink:        #17181c;
+    --ink-soft:   #565961;
+    --ink-faint:  #8b8e94;
+    --rule:       #d5d6d1;   /* hairline / plotting grid */
+    --grid:       #dedfda;
+    --accent:     #d94f27;   /* persimmon = Type II = the interactive signal */
+    --accent-ink: #ffffff;
+
+    /* fixed per-type identity colours (light ground) */
+    --t1:#2f6db4; --t2:#d94f27; --t3:#158f7d; --t4:#7e5aa2; --t5:#bd8420; --t6:#495563;
+
+    --font-display: "Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --font-ui: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono: "SF Mono","JetBrains Mono","Cascadia Code",ui-monospace,Menlo,Consolas,monospace;
+
+    --maxw: 960px;
+    --step:1.6rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#14161b; --panel:#1b1e24; --ink:#e9e6de; --ink-soft:#a7abb3;
+      --ink-faint:#6d727b; --rule:#2a2e37; --grid:#242833; --accent:#ff6a3d; --accent-ink:#14161b;
+      --t1:#5b9be0; --t2:#ff6a3d; --t3:#2fc0aa; --t4:#a985d6; --t5:#e3ad3f; --t6:#9aa4b2;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper:#e8e9e6; --panel:#f3f3f1; --ink:#17181c; --ink-soft:#565961; --ink-faint:#8b8e94;
+    --rule:#d5d6d1; --grid:#dedfda; --accent:#d94f27; --accent-ink:#ffffff;
+    --t1:#2f6db4; --t2:#d94f27; --t3:#158f7d; --t4:#7e5aa2; --t5:#bd8420; --t6:#495563;
+  }
+  :root[data-theme="dark"] {
+    --paper:#14161b; --panel:#1b1e24; --ink:#e9e6de; --ink-soft:#a7abb3;
+    --ink-faint:#6d727b; --rule:#2a2e37; --grid:#242833; --accent:#ff6a3d; --accent-ink:#14161b;
+    --t1:#5b9be0; --t2:#ff6a3d; --t3:#2fc0aa; --t4:#a985d6; --t5:#e3ad3f; --t6:#9aa4b2;
+  }
+
+  *,*::before,*::after { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--font-ui); line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .plate { max-width:var(--maxw); margin:0 auto; padding:clamp(1.4rem,4vw,3.2rem) clamp(1.1rem,4vw,2rem) 4rem; }
+
+  /* baseline hairline rules evoke plotting paper */
+  .rule { border:0; border-top:1px solid var(--rule); margin:var(--step) 0; }
+
+  /* ---- masthead ---------------------------------------------------------- */
+  .eyebrow {
+    font-family:var(--font-mono); font-size:.72rem; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--ink-soft); margin:0 0 1rem;
+  }
+  h1 {
+    font-family:var(--font-display); font-weight:600; text-wrap:balance;
+    font-size:clamp(1.9rem,5.2vw,3.1rem); line-height:1.08; letter-spacing:-.01em;
+    margin:0 0 .8rem;
+  }
+  .dek {
+    font-family:var(--font-display); font-size:clamp(1.05rem,2.4vw,1.32rem);
+    color:var(--ink-soft); max-width:34em; margin:0; font-style:italic;
+  }
+  .byline {
+    margin-top:1.2rem; font-family:var(--font-mono); font-size:.74rem;
+    letter-spacing:.04em; color:var(--ink-faint);
+  }
+
+  /* ---- section scaffolding ---------------------------------------------- */
+  section { margin-top:calc(var(--step) * 2); }
+  .kicker {
+    font-family:var(--font-mono); font-size:.7rem; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 .5rem;
+  }
+  h2 {
+    font-family:var(--font-display); font-weight:600; font-size:clamp(1.35rem,3vw,1.9rem);
+    line-height:1.15; margin:0 0 .5rem; text-wrap:balance; letter-spacing:-.01em;
+  }
+  .lede { color:var(--ink-soft); max-width:60ch; margin:0 0 1.4rem; }
+
+  /* ---- control bar ------------------------------------------------------- */
+  .controls {
+    display:flex; flex-wrap:wrap; align-items:center; gap:1.2rem 1.6rem;
+    padding:1rem 1.1rem; background:var(--panel); border:1px solid var(--rule);
+    border-radius:2px;
+  }
+  .ctl-label {
+    font-family:var(--font-mono); font-size:.68rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink-faint); margin-right:-.6rem;
+  }
+  .tabs { display:flex; gap:.3rem; background:transparent; }
+  .tab {
+    font-family:var(--font-ui); font-size:.9rem; font-weight:550;
+    padding:.42rem .9rem; border:1px solid var(--rule); background:transparent;
+    color:var(--ink-soft); cursor:pointer; border-radius:2px; transition:all .15s ease;
+  }
+  .tab:hover { color:var(--ink); border-color:var(--ink-faint); }
+  .tab[aria-selected="true"] {
+    background:var(--ink); color:var(--paper); border-color:var(--ink);
+  }
+  .tab:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* attention switch */
+  .switch-wrap { display:flex; align-items:center; gap:.6rem; }
+  .switch-wrap.disabled { opacity:.4; pointer-events:none; }
+  .switch {
+    --w:44px; --h:24px; position:relative; width:var(--w); height:var(--h);
+    border:1px solid var(--rule); border-radius:999px; background:var(--paper);
+    cursor:pointer; padding:0; transition:background .2s ease, border-color .2s ease;
+  }
+  .switch[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); }
+  .switch::after {
+    content:""; position:absolute; top:2px; left:2px; width:18px; height:18px;
+    border-radius:50%; background:var(--ink); transition:transform .22s cubic-bezier(.34,1.4,.5,1);
+  }
+  .switch[aria-pressed="true"]::after { transform:translateX(20px); background:var(--accent-ink); }
+  .switch:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .switch-txt { font-family:var(--font-mono); font-size:.78rem; color:var(--ink-soft); min-width:3.2em; }
+  .switch-note { font-size:.78rem; color:var(--ink-faint); font-style:italic; }
+
+  /* ---- figure: bar chart ------------------------------------------------- */
+  figure { margin:1.4rem 0 0; }
+  .fighead { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:.4rem; margin-bottom:.9rem; }
+  .figtitle { font-family:var(--font-ui); font-weight:600; font-size:.95rem; }
+  .modelblurb { color:var(--ink-soft); font-size:.85rem; font-style:italic; }
+
+  .bars { display:flex; flex-direction:column; gap:.5rem; position:relative; }
+  .bar-row {
+    display:grid; grid-template-columns:2.6rem 1fr auto; align-items:center; gap:.8rem;
+    transition:transform .55s cubic-bezier(.4,0,.15,1);
+  }
+  .bar-type {
+    font-family:var(--font-display); font-weight:600; font-size:1.05rem; text-align:right;
+    color:var(--ink);
+  }
+  .bar-track { position:relative; height:26px; }
+  .bar-fill {
+    position:absolute; inset:0 auto 0 0; height:100%; border-radius:2px; min-width:2px;
+    transition:width .55s cubic-bezier(.4,0,.15,1);
+    display:flex; align-items:center; justify-content:flex-end; padding-right:.5rem;
+  }
+  .bar-fill.notreached {
+    background-image:repeating-linear-gradient(135deg, transparent 0 6px, rgba(255,255,255,.28) 6px 8px);
+  }
+  .bar-val {
+    font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:.86rem;
+    color:var(--ink-soft); min-width:5.6rem;
+  }
+  .bar-val .crit { color:var(--ink-faint); font-size:.72rem; }
+  .bar-row.hero .bar-type { color:var(--accent); }
+  .bar-row.hero .bar-type::after { content:" \25C0"; font-size:.6rem; vertical-align:middle; }
+
+  .axis-note { font-family:var(--font-mono); font-size:.7rem; color:var(--ink-faint); margin-top:.9rem; letter-spacing:.02em; }
+
+  /* ---- figure: learning curves (SVG) ------------------------------------ */
+  .curvewrap { overflow-x:auto; }
+  svg.curves { display:block; width:100%; height:auto; }
+  .curves .gridline { stroke:var(--grid); stroke-width:1; }
+  .curves .axis { stroke:var(--ink-faint); stroke-width:1; }
+  .curves text { font-family:var(--font-mono); font-size:10px; fill:var(--ink-faint); }
+  .curves .cline { fill:none; stroke-width:2.2; transition:opacity .2s; }
+  .curves .cline.dim { opacity:.16; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:.4rem .9rem; margin-top:.7rem; }
+  .legch {
+    display:inline-flex; align-items:center; gap:.4rem; font-size:.82rem; cursor:pointer;
+    font-family:var(--font-mono); color:var(--ink-soft); padding:.15rem .3rem; border-radius:2px;
+    user-select:none;
+  }
+  .legch .sw { width:14px; height:3px; border-radius:2px; }
+  .legch.off { opacity:.4; }
+
+  /* ---- six-structures strip --------------------------------------------- */
+  .structgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:1rem 1.2rem; }
+  .struct { }
+  .struct .st-h { display:flex; align-items:baseline; gap:.5rem; margin-bottom:.4rem; }
+  .struct .st-t { font-family:var(--font-display); font-weight:600; font-size:1rem; }
+  .struct .st-d { font-family:var(--font-mono); font-size:.66rem; color:var(--ink-faint); letter-spacing:.02em; }
+  .cells { display:grid; grid-template-columns:repeat(8,1fr); gap:2px; }
+  .cell { aspect-ratio:1; border-radius:1.5px; display:flex; align-items:center; justify-content:center; }
+  .cell span { font-family:var(--font-mono); font-size:.5rem; color:var(--paper); opacity:.85; }
+
+  /* ---- findings ---------------------------------------------------------- */
+  .findings { display:grid; grid-template-columns:1fr; gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:2px; overflow:hidden; }
+  @media (min-width:640px){ .findings { grid-template-columns:repeat(3,1fr); } }
+  .finding { background:var(--panel); padding:1.2rem 1.15rem; }
+  .finding .fnum { font-family:var(--font-mono); font-size:.72rem; color:var(--accent); letter-spacing:.1em; }
+  .finding h3 { font-family:var(--font-display); font-weight:600; font-size:1.08rem; margin:.4rem 0 .5rem; line-height:1.2; text-wrap:balance; }
+  .finding p { margin:0; font-size:.88rem; color:var(--ink-soft); }
+  .finding .code { font-family:var(--font-mono); color:var(--ink); font-size:.82rem; }
+
+  /* ---- method / footer --------------------------------------------------- */
+  .method { font-size:.85rem; color:var(--ink-soft); }
+  .method dl { display:grid; grid-template-columns:auto 1fr; gap:.35rem 1rem; margin:0 0 1.2rem; }
+  .method dt { font-family:var(--font-mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); }
+  .method dd { margin:0; font-variant-numeric:tabular-nums; }
+  .refs { font-size:.78rem; color:var(--ink-faint); line-height:1.7; }
+  .refs p { margin:.1rem 0; }
+
+  .tooltip {
+    position:fixed; pointer-events:none; z-index:50; background:var(--ink); color:var(--paper);
+    font-family:var(--font-mono); font-size:.74rem; padding:.4rem .55rem; border-radius:3px;
+    opacity:0; transition:opacity .12s; max-width:220px; line-height:1.4;
+  }
+  .tooltip.show { opacity:1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition:none !important; }
+  }
+</style>
+
+<div class="plate">
+  <header>
+    <p class="eyebrow">CS 6795 · Cognitive Science · A theory of mind, run as a program</p>
+    <h1>Three theories of a concept, judged by how they struggle</h1>
+    <p class="dek">Prototype, exemplar, and rule models learn the same six category puzzles. The winner isn&rsquo;t the most accurate one &mdash; it&rsquo;s the one that finds hard what people find hard.</p>
+    <p class="byline">Rabea Abdelwahab · rabdelwahab3 &nbsp;/&nbsp; models: prototype · exemplar (ALCOVE/GCM) · rule</p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ================= HERO DEMO ================= -->
+  <section id="demo" style="margin-top:1.2rem;">
+    <p class="kicker">The experiment, live</p>
+    <h2>How hard is each structure to learn?</h2>
+    <p class="lede">Bars show <strong>errors made before mastering each structure</strong> &mdash; shorter is easier. Pick a model; for the exemplar model, flip <em>selective attention</em> on and off and watch Type&nbsp;II move.</p>
+
+    <div class="controls" role="group" aria-label="Model controls">
+      <span class="ctl-label">Model</span>
+      <div class="tabs" role="tablist" aria-label="Model">
+        <button class="tab" role="tab" data-model="exemplar" aria-selected="true">Exemplar</button>
+        <button class="tab" role="tab" data-model="prototype" aria-selected="false">Prototype</button>
+        <button class="tab" role="tab" data-model="rule" aria-selected="false">Rule</button>
+      </div>
+      <div class="switch-wrap" id="attnWrap">
+        <span class="ctl-label">Attention</span>
+        <button class="switch" id="attnSwitch" aria-pressed="true" aria-label="Toggle selective attention"></button>
+        <span class="switch-txt" id="attnTxt">on</span>
+        <span class="switch-note" id="attnNote"></span>
+      </div>
+    </div>
+
+    <figure>
+      <div class="fighead">
+        <span class="figtitle" id="figTitle">Exemplar (ALCOVE)</span>
+        <span class="modelblurb" id="figBlurb"></span>
+      </div>
+      <div class="bars" id="bars" aria-live="polite"></div>
+      <p class="axis-note" id="axisNote"></p>
+    </figure>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ================= LEARNING CURVES ================= -->
+  <section id="curves">
+    <p class="kicker">Trial by trial</p>
+    <h2>Learning curves</h2>
+    <p class="lede">Errors per block as training proceeds (a block = all eight stimuli once). Curves that fall to zero were learned; a curve stuck near four is a model sitting at chance. Click a type in the legend to isolate it.</p>
+    <figure>
+      <div class="curvewrap">
+        <svg class="curves" id="curveSvg" viewBox="0 0 720 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Learning curves by category type"></svg>
+      </div>
+      <div class="legend" id="legend"></div>
+    </figure>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ================= SIX STRUCTURES ================= -->
+  <section id="structures">
+    <p class="kicker">The stimuli</p>
+    <h2>Eight objects, three on/off features, six ways to sort them</h2>
+    <p class="lede">Each object is a three-bit code (e.g. <span style="font-family:var(--font-mono)">1&middot;0&middot;1</span>). Every structure splits the eight into two categories of four. Colour marks category&nbsp;A vs&nbsp;B; the code beneath is the stimulus.</p>
+    <div class="structgrid" id="structGrid"></div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ================= FINDINGS ================= -->
+  <section id="findings">
+    <p class="kicker">What the models show</p>
+    <h2>Three results</h2>
+    <div class="findings">
+      <div class="finding">
+        <span class="fnum">01</span>
+        <h3>Only the exemplar model learns the human way</h3>
+        <p>With selective attention on, ALCOVE reproduces the human order <span class="code">I &lt; II &lt; {III,IV,V} &lt; VI</span> &mdash; including the &ldquo;unexpectedly easy&rdquo; Type&nbsp;II.</p>
+      </div>
+      <div class="finding">
+        <span class="fnum">02</span>
+        <h3>Attention is what makes Type&nbsp;II easy</h3>
+        <p>Freeze attention and Type&nbsp;II collapses from second-easiest to nearly the hardest. Learning <em>which features matter</em> is the mechanism &mdash; flip the switch above to see it.</p>
+      </div>
+      <div class="finding">
+        <span class="fnum">03</span>
+        <h3>The others fail, informatively</h3>
+        <p>The prototype model can&rsquo;t represent XOR or parity &mdash; it never learns Types&nbsp;II or&nbsp;VI. The rule model nails Type&nbsp;I in one error but finds Type&nbsp;II hard: the opposite of people.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ================= METHOD ================= -->
+  <section id="method" class="method">
+    <p class="kicker">Method</p>
+    <h2>How these numbers were made</h2>
+    <dl id="methodDl"></dl>
+    <div class="refs">
+      <p>Shepard, Hovland &amp; Jenkins (1961). Learning and memorization of classifications. <em>Psychological Monographs</em>, 75(13).</p>
+      <p>Nosofsky, Gluck, Palmeri, McKinley &amp; Glauthier (1994). Comparing models of rule-based classification learning. <em>Memory &amp; Cognition</em>, 22(3).</p>
+      <p>Kruschke (1992). ALCOVE: An exemplar-based connectionist model of category learning. <em>Psychological Review</em>, 99(1).</p>
+      <p>Medin &amp; Schaffer (1978); Nosofsky (1986); Rosch (1975); Thagard, <em>Mind</em> (2005), ch.&nbsp;4.</p>
+      <p style="margin-top:.6rem; color:var(--ink-soft);">Every figure is drawn from the same precomputed run as the reproducible notebook &mdash; the site is a viewer over that data, not a second implementation.</p>
+    </div>
+  </section>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function () {
+  "use strict";
+  const DATA = JSON.parse(document.getElementById("results-data").textContent);
+  const TYPES = DATA.types;                       // ["I".."VI"]
+  const TYPE_COLOR = t => getComputedStyle(document.documentElement)
+                            .getPropertyValue("--t" + (TYPES.indexOf(t) + 1)).trim();
+
+  // canonical, verified SHJ category labels (0 = A, 1 = B), order 000..111
+  const STIM = ["000","001","010","011","100","101","110","111"];
+  const STRUCT = {
+    I:  [0,0,0,0,1,1,1,1], II: [0,0,1,1,1,1,0,0], III:[0,0,0,1,1,1,1,0],
+    IV: [0,0,0,1,0,1,1,1], V:  [0,0,0,1,1,0,1,1], VI: [0,1,1,0,1,0,0,1]
+  };
+
+  // model tab -> data key
+  let currentModel = "exemplar";
+  let attnOn = true;
+  const keyFor = () => {
+    if (currentModel === "prototype") return "prototype";
+    if (currentModel === "rule") return "rule_v1";
+    return attnOn ? "exemplar_attn_on" : "exemplar_attn_off";
+  };
+
+  // global error domain (comparable scale across models/conditions)
+  let DOMAIN = 0;
+  for (const k in DATA.models)
+    for (const t of TYPES)
+      DOMAIN = Math.max(DOMAIN, DATA.models[k].per_type[t].total_errors);
+  DOMAIN = Math.ceil(DOMAIN / 10) * 10;
+
+  const barsEl = document.getElementById("bars");
+  const rowByType = {};
+
+  function buildBars() {
+    barsEl.innerHTML = "";
+    TYPES.forEach(t => {
+      const row = document.createElement("div");
+      row.className = "bar-row" + (t === "II" ? " hero" : "");
+      row.dataset.type = t;
+      row.innerHTML =
+        '<div class="bar-type">' + t + '</div>' +
+        '<div class="bar-track"><div class="bar-fill"></div></div>' +
+        '<div class="bar-val"></div>';
+      barsEl.appendChild(row);
+      rowByType[t] = row;
+    });
+  }
+
+  const ROW_H = 34;   // px per row incl. gap (26 + 8)
+
+  function renderBars() {
+    const key = keyFor();
+    const model = DATA.models[key];
+    document.getElementById("figTitle").textContent = model.label;
+    document.getElementById("figBlurb").textContent = model.blurb;
+
+    // sorted order (easy -> hard)
+    const order = [...TYPES].sort((a, b) =>
+      model.per_type[a].total_errors - model.per_type[b].total_errors);
+
+    order.forEach((t, i) => {
+      const cell = model.per_type[t];
+      const row = rowByType[t];
+      row.style.transform = "translateY(" + (i * ROW_H) + "px)";
+      row.style.position = "absolute";
+      row.style.left = "0"; row.style.right = "0";
+
+      const fill = row.querySelector(".bar-fill");
+      const pct = Math.max(1, (cell.total_errors / DOMAIN) * 100);
+      fill.style.width = pct + "%";
+      fill.style.background = TYPE_COLOR(t);
+      const reached = cell.p_reached_criterion >= 0.5;
+      fill.classList.toggle("notreached", !reached);
+
+      const val = row.querySelector(".bar-val");
+      const critTxt = reached
+        ? '<span class="crit">solved ' + Math.round(cell.p_reached_criterion * 100) + '%</span>'
+        : '<span class="crit">never solved</span>';
+      val.innerHTML = cell.total_errors.toFixed(1) + " errs &nbsp;" + critTxt;
+
+      // tooltip data
+      row.onpointermove = e => showTip(e,
+        "Type " + t + " — " + model.label + "\n" +
+        cell.total_errors.toFixed(1) + " errors to criterion\n" +
+        "reached criterion: " + Math.round(cell.p_reached_criterion * 100) + "% of subjects");
+      row.onpointerleave = hideTip;
+    });
+
+    barsEl.style.position = "relative";
+    barsEl.style.height = (TYPES.length * ROW_H) + "px";
+    document.getElementById("axisNote").textContent =
+      "errors to criterion · scale 0–" + DOMAIN + " · hatched bar = most subjects never reached criterion";
+  }
+
+  // ---- learning curves (SVG) ----
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("curveSvg");
+  const M = { l: 34, r: 12, t: 14, b: 26 }, W = 720, H = 320;
+  const NB = DATA.meta.n_blocks;
+  const hidden = new Set();
+
+  const xs = b => M.l + (b / (NB - 1)) * (W - M.l - M.r);
+  const ys = e => H - M.b - (e / 8) * (H - M.t - M.b);
+
+  function mk(tag, attrs) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function renderCurves() {
+    const key = keyFor();
+    const model = DATA.models[key];
+    svg.innerHTML = "";
+
+    // gridlines + y labels (0,2,4,6,8 errors)
+    for (let e = 0; e <= 8; e += 2) {
+      svg.appendChild(mk("line", { class: "gridline", x1: M.l, x2: W - M.r, y1: ys(e), y2: ys(e) }));
+      const lab = mk("text", { x: M.l - 6, y: ys(e) + 3, "text-anchor": "end" });
+      lab.textContent = e; svg.appendChild(lab);
+    }
+    // x axis label ticks (block 1, mid, last)
+    [1, Math.ceil(NB / 2), NB].forEach(bk => {
+      const lab = mk("text", { x: xs(bk - 1), y: H - 8, "text-anchor": "middle" });
+      lab.textContent = bk; svg.appendChild(lab);
+    });
+    const xlab = mk("text", { x: (W + M.l - M.r) / 2, y: H - 8 + 0, "text-anchor": "middle", opacity: 0 });
+    svg.appendChild(xlab);
+    // axis lines
+    svg.appendChild(mk("line", { class: "axis", x1: M.l, x2: M.l, y1: M.t, y2: H - M.b }));
+    svg.appendChild(mk("line", { class: "axis", x1: M.l, x2: W - M.r, y1: H - M.b, y2: H - M.b }));
+
+    TYPES.forEach(t => {
+      if (hidden.has(t)) return;
+      const arr = model.per_type[t].errors_per_block;
+      const d = arr.map((e, b) => (b === 0 ? "M" : "L") + xs(b).toFixed(1) + " " + ys(e).toFixed(1)).join(" ");
+      const path = mk("path", { class: "cline" + (t === "II" ? "" : ""), d: d, stroke: TYPE_COLOR(t) });
+      if (t === "II") path.setAttribute("stroke-width", "3.2");
+      svg.appendChild(path);
+    });
+    // caption tick label for x
+    const cap = mk("text", { x: W - M.r, y: H - 8, "text-anchor": "end", opacity: .7 });
+    cap.textContent = "block →"; svg.appendChild(cap);
+  }
+
+  function buildLegend() {
+    const leg = document.getElementById("legend");
+    leg.innerHTML = "";
+    TYPES.forEach(t => {
+      const el = document.createElement("span");
+      el.className = "legch";
+      el.innerHTML = '<span class="sw" style="background:' + TYPE_COLOR(t) + '"></span>Type ' + t;
+      el.onclick = () => {
+        if (hidden.has(t)) hidden.delete(t); else hidden.add(t);
+        el.classList.toggle("off", hidden.has(t));
+        renderCurves();
+      };
+      leg.appendChild(el);
+    });
+  }
+
+  // ---- six-structures strip ----
+  function buildStructures() {
+    const g = document.getElementById("structGrid");
+    const desc = { I:"1 feature", II:"XOR of 2", III:"rule + exc.", IV:"family resemb.", V:"rule + exc.", VI:"parity" };
+    TYPES.forEach(t => {
+      const wrap = document.createElement("div");
+      wrap.className = "struct";
+      let cells = "";
+      STRUCT[t].forEach((lab, i) => {
+        const col = lab === 0 ? TYPE_COLOR(t) : "transparent";
+        const border = lab === 0 ? "" : "border:1px solid var(--rule);";
+        cells += '<div class="cell" style="background:' + col + ';' + border +
+                 '"><span style="color:' + (lab===0?'var(--paper)':'var(--ink-faint)') + '">' + STIM[i] + '</span></div>';
+      });
+      wrap.innerHTML =
+        '<div class="st-h"><span class="st-t" style="color:' + TYPE_COLOR(t) + '">' + t + '</span>' +
+        '<span class="st-d">' + desc[t] + '</span></div>' +
+        '<div class="cells">' + cells + '</div>';
+      g.appendChild(wrap);
+    });
+  }
+
+  // ---- method dl ----
+  function buildMethod() {
+    const dl = document.getElementById("methodDl");
+    const m = DATA.meta;
+    const rows = [
+      ["Task", "6 Shepard–Hovland–Jenkins structures · 8 stimuli · 3 binary dims"],
+      ["Measure", "errors to criterion (one error-free block), horizon-bounded"],
+      ["Subjects", m.n_subjects + " simulated per model × structure"],
+      ["Training", m.n_blocks + " blocks max · responses probability-matched"],
+      ["Exemplar", "ALCOVE (Kruschke 1992): c = 6.5, φ = 2.0, λ_w = 0.03, λ_α = 0.0033"],
+      ["Attention off", "same model with λ_α = 0 (attention frozen uniform)"],
+      ["Human target", DATA.human_ordering]
+    ];
+    dl.innerHTML = rows.map(r => "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>").join("");
+  }
+
+  // ---- tooltip ----
+  const tip = document.getElementById("tooltip");
+  function showTip(e, txt) {
+    tip.textContent = txt; tip.classList.add("show");
+    tip.style.whiteSpace = "pre-line";
+    let x = e.clientX + 14, y = e.clientY + 14;
+    const r = tip.getBoundingClientRect();
+    if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+    if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { tip.classList.remove("show"); }
+
+  // ---- attention switch state ----
+  const attnWrap = document.getElementById("attnWrap");
+  const attnSwitch = document.getElementById("attnSwitch");
+  const attnTxt = document.getElementById("attnTxt");
+  const attnNote = document.getElementById("attnNote");
+
+  function syncAttnUI() {
+    const isExemplar = currentModel === "exemplar";
+    attnWrap.classList.toggle("disabled", !isExemplar);
+    attnSwitch.setAttribute("aria-pressed", String(attnOn));
+    attnTxt.textContent = isExemplar ? (attnOn ? "on" : "off") : "—";
+    attnNote.textContent = isExemplar
+      ? (attnOn ? "" : "Type II collapses ↓")
+      : "applies to the exemplar model";
+  }
+
+  function refresh() { renderBars(); renderCurves(); syncAttnUI(); }
+
+  // ---- wire controls ----
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", "false"));
+      tab.setAttribute("aria-selected", "true");
+      currentModel = tab.dataset.model;
+      refresh();
+    });
+  });
+  attnSwitch.addEventListener("click", () => {
+    if (currentModel !== "exemplar") return;
+    attnOn = !attnOn;
+    refresh();
+  });
+
+  // ---- init ----
+  buildBars(); buildLegend(); buildStructures(); buildMethod();
+  refresh();
+  window.addEventListener("resize", () => { /* SVG is viewBox-scaled; bars use % */ });
+})();
+</script>

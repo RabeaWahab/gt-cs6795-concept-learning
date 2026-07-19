@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+venv/
+.venv/
+env/
+
+# Notebook output artifacts kept out of the repo unless promoted to figures/
+notebooks/*-checkpoint.ipynb
+
+# LaTeX build artifacts (keep only .tex, .bib, .pdf)
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+
+# Copyrighted course reading — do NOT distribute
+Thagard.pdf
+
+# OS
+.DS_Store

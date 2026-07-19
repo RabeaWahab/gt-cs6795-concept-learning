@@ -1,0 +1,1023 @@
+<style>
+  /* ============================================================= *
+   *  HOW THE MODELS LEARN — an observation console                *
+   *  Self-contained. No external requests. Light + dark themes.    *
+   * ============================================================= */
+
+  :root {
+    --ground:   #0e131c;
+    --panel:    #151c28;
+    --panel-2:  #1b2434;
+    --line:     #29344a;
+    --ink:      #e9eef7;
+    --ink-soft: #b7c2d6;
+    --muted:    #7f8da5;
+    --accent:   #efb63c;   /* signal / active */
+    --accent-d: #caa233;
+    --catA:     #33b3a6;   /* pile A — teal   */
+    --catB:     #7b83ef;   /* pile B — indigo */
+    --good:     #57c07f;
+    --bad:      #e5544e;
+
+    --t1:#e0a34b; --t2:#5bbfa6; --t3:#7b9ff0; --t4:#d97fb0; --t5:#9bcf6a; --t6:#e0705b;
+
+    --serif: "Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --mono:  ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:  system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+
+    --radius: 14px;
+    --shadow: 0 18px 50px -22px rgba(0,0,0,.7);
+    --maxw: 1120px;
+    --prosew: 760px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground:   #eef1f6;
+      --panel:    #ffffff;
+      --panel-2:  #f4f6fa;
+      --line:     #d8dfea;
+      --ink:      #182233;
+      --ink-soft: #3f4c61;
+      --muted:    #6a7791;
+      --accent:   #c98a12;
+      --accent-d: #a8720c;
+      --catA:     #17897d;
+      --catB:     #5a63d6;
+      --good:     #2f9d5b;
+      --bad:      #cf3b36;
+      --shadow: 0 18px 44px -26px rgba(30,45,75,.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e131c; --panel:#151c28; --panel-2:#1b2434; --line:#29344a;
+    --ink:#e9eef7; --ink-soft:#b7c2d6; --muted:#7f8da5;
+    --accent:#efb63c; --accent-d:#caa233; --catA:#33b3a6; --catB:#7b83ef;
+    --good:#57c07f; --bad:#e5544e; --shadow:0 18px 50px -22px rgba(0,0,0,.7);
+  }
+  :root[data-theme="light"]{
+    --ground:#eef1f6; --panel:#ffffff; --panel-2:#f4f6fa; --line:#d8dfea;
+    --ink:#182233; --ink-soft:#3f4c61; --muted:#6a7791;
+    --accent:#c98a12; --accent-d:#a8720c; --catA:#17897d; --catB:#5a63d6;
+    --good:#2f9d5b; --bad:#cf3b36; --shadow:0 18px 44px -26px rgba(30,45,75,.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 700px at 50% -8%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
+      var(--ground);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+  .prose { max-width: var(--prosew); }
+
+  /* ---- typographic system ---- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before {
+    content: ""; width: 26px; height: 1px; background: var(--accent);
+    display: inline-block; opacity: .7;
+  }
+  h1 { font-size: clamp(2.3rem, 5.2vw, 3.9rem); line-height: 1.02; margin: 0 0 18px;
+       font-weight: 600; letter-spacing: -.015em; text-wrap: balance; }
+  h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); line-height: 1.1; margin: 0 0 14px;
+       font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+  h3 { font-size: 1.15rem; margin: 0 0 8px; font-weight: 600; }
+  p  { color: var(--ink-soft); }
+  .lead { font-size: 1.24rem; color: var(--ink-soft); }
+  .mono { font-family: var(--mono); }
+  strong { color: var(--ink); font-weight: 600; }
+
+  section { padding: 46px 0; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: none; }
+
+  /* ---- hero ---- */
+  header.hero { padding: 74px 0 26px; }
+  .hero .kicker { color: var(--muted); font-family: var(--mono); font-size: 12.5px;
+                  letter-spacing:.04em; margin-top: 20px; }
+  .hero .kicker b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---- cards (stimuli) ---- */
+  .card-svg { display:block; }
+  .stim-rail { display:flex; flex-wrap:wrap; gap:12px; margin-top: 26px; }
+  .stim-chip {
+    background: var(--panel); border:1px solid var(--line); border-radius: 12px;
+    padding: 10px 10px 8px; text-align:center; width: 84px;
+  }
+  .stim-chip .code { font-family:var(--mono); font-size: 11px; color: var(--muted);
+                     margin-top: 6px; letter-spacing:.08em; }
+
+  /* ---- loop diagram ---- */
+  .loop { display:grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 26px; }
+  .loop .step {
+    position:relative; background: var(--panel); border:1px solid var(--line);
+    border-radius: 12px; padding: 16px 14px;
+  }
+  .loop .step .n { font-family:var(--mono); font-size:11px; color: var(--accent);
+                   letter-spacing:.15em; }
+  .loop .step h4 { margin:8px 0 4px; font-size: 1.02rem; font-family:var(--serif); font-weight:600; }
+  .loop .step p { margin:0; font-size:.9rem; color: var(--muted); line-height:1.45; }
+  .loop .step:not(:last-child)::after {
+    content:"→"; position:absolute; right:-11px; top:50%; transform:translateY(-50%);
+    color: var(--muted); font-family:var(--mono); z-index:2; font-size: 15px;
+  }
+  @media (max-width: 760px){ .loop{ grid-template-columns:1fr 1fr; }
+    .loop .step:not(:last-child)::after{ display:none; } }
+
+  /* ---- the bench ---- */
+  .bench {
+    background: linear-gradient(180deg, var(--panel), color-mix(in srgb,var(--panel) 88%, var(--ground)));
+    border:1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .bench-bar {
+    display:flex; flex-wrap:wrap; align-items:center; gap: 14px 18px;
+    padding: 16px 18px; border-bottom:1px solid var(--line);
+    background: var(--panel-2);
+  }
+  .ctl-group { display:flex; align-items:center; gap: 8px; }
+  .ctl-label { font-family:var(--mono); font-size:10.5px; letter-spacing:.16em;
+               text-transform:uppercase; color: var(--muted); margin-right: 2px; }
+
+  .seg { display:flex; background: var(--ground); border:1px solid var(--line); border-radius: 9px; padding:3px; gap:3px; }
+  .seg button, .tabs button {
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.03em;
+    color: var(--ink-soft); background: transparent; border:none; cursor:pointer;
+    padding: 6px 11px; border-radius: 7px; transition: background .16s, color .16s;
+  }
+  .seg button:hover, .tabs button:hover { color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color:#141414; font-weight:600; }
+  .seg.types button[aria-pressed="true"]{ color:#141414; }
+
+  .tabs { display:flex; gap:6px; }
+  .tabs button { border:1px solid var(--line); background: var(--ground); }
+  .tabs button[aria-pressed="true"]{ background: var(--accent); color:#141414; border-color: var(--accent); font-weight:600; }
+
+  .switch { display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; }
+  .switch input { position:absolute; opacity:0; width:0; height:0; }
+  .switch .track { width:40px; height:22px; border-radius:20px; background: var(--line);
+                   position:relative; transition: background .18s; flex:none; }
+  .switch .track::after { content:""; position:absolute; top:2px; left:2px; width:18px; height:18px;
+                          border-radius:50%; background:#fff; transition: transform .18s; }
+  .switch input:checked + .track { background: var(--catA); }
+  .switch input:checked + .track::after { transform: translateX(18px); }
+  .switch .txt { font-family:var(--mono); font-size:12px; color: var(--ink-soft); }
+  .switch.disabled { opacity:.35; pointer-events:none; }
+
+  .btn {
+    font-family:var(--sans); font-size:13.5px; font-weight:600; cursor:pointer;
+    border:1px solid var(--line); background: var(--ground); color: var(--ink);
+    padding: 8px 15px; border-radius: 9px; transition: transform .1s, border-color .16s, background .16s;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); color:#141414; border-color: var(--accent); }
+  .btn.primary[aria-pressed="true"]{ background: var(--accent-d); }
+  .btn:disabled { opacity:.4; cursor:default; }
+
+  /* stage grid */
+  .stage { display:grid; grid-template-columns: 300px 1fr; gap: 0; }
+  @media (max-width: 880px){ .stage{ grid-template-columns:1fr; } }
+
+  .stage-left {
+    padding: 22px 20px; border-right:1px solid var(--line);
+    display:flex; flex-direction:column; gap: 18px; background: color-mix(in srgb,var(--panel) 70%, var(--ground));
+  }
+  @media (max-width:880px){ .stage-left{ border-right:none; border-bottom:1px solid var(--line);} }
+  .stage-right { padding: 22px 22px; min-height: 340px; }
+
+  .trial-head { font-family:var(--mono); font-size:11px; letter-spacing:.15em; text-transform:uppercase;
+                color: var(--muted); display:flex; justify-content:space-between; }
+  .cardstage { display:flex; flex-direction:column; align-items:center; gap:12px; padding: 8px 0 4px; }
+  .cardframe {
+    width: 132px; height: 132px; border-radius: 16px; border:1px solid var(--line);
+    background: var(--panel-2); display:flex; align-items:center; justify-content:center;
+    position:relative; transition: box-shadow .2s, border-color .2s;
+  }
+  .cardframe.live { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb,var(--accent) 28%, transparent); }
+  .card-enter { animation: cardIn .34s cubic-bezier(.2,.8,.2,1); }
+  @keyframes cardIn { from{ opacity:0; transform: translateY(-10px) scale(.94);} to{opacity:1;transform:none;} }
+  .card-code { font-family:var(--mono); font-size:12px; color: var(--ink-soft); letter-spacing:.12em; }
+
+  .verdict { display:flex; flex-direction:column; gap:8px; }
+  .vrow { display:flex; align-items:center; justify-content:space-between; gap:10px;
+          font-family:var(--mono); font-size:12.5px; }
+  .vrow .k { color: var(--muted); letter-spacing:.05em; }
+  .pill { font-family:var(--mono); font-size:11.5px; font-weight:600; padding: 3px 9px; border-radius: 20px; }
+  .pill.a { background: color-mix(in srgb,var(--catA) 20%, transparent); color: var(--catA); }
+  .pill.b { background: color-mix(in srgb,var(--catB) 22%, transparent); color: var(--catB); }
+  .pill.good { background: color-mix(in srgb,var(--good) 20%, transparent); color: var(--good); }
+  .pill.bad  { background: color-mix(in srgb,var(--bad) 20%, transparent); color: var(--bad); }
+  .pill.wait { background: var(--panel-2); color: var(--muted); }
+  .flash { animation: flash .5s ease; }
+  @keyframes flash { 0%{ transform: scale(1);} 30%{ transform: scale(1.14);} 100%{ transform: scale(1);} }
+
+  .counters { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .counter { background: var(--ground); border:1px solid var(--line); border-radius:10px; padding: 9px 11px; }
+  .counter .big { font-family:var(--mono); font-size: 1.5rem; font-weight:600; color: var(--ink);
+                  font-variant-numeric: tabular-nums; line-height:1.1; }
+  .counter .lab { font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color: var(--muted); }
+
+  /* narration */
+  .narrate {
+    font-family: var(--serif); font-size: 1.06rem; color: var(--ink);
+    background: color-mix(in srgb,var(--accent) 8%, transparent);
+    border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 0 0 20px; min-height: 30px; line-height:1.5;
+  }
+  .narrate .em { color: var(--accent); font-style: italic; }
+
+  .panel-title { font-family:var(--mono); font-size:11px; letter-spacing:.15em; text-transform:uppercase;
+                 color: var(--muted); margin: 0 0 14px; }
+
+  /* prototype viz */
+  .proto-grid { display:grid; grid-template-columns:1fr 1fr; gap: 18px; }
+  .proto-col { background: var(--ground); border:1px solid var(--line); border-radius:12px; padding: 14px; }
+  .proto-col h5 { margin:0 0 12px; font-family:var(--mono); font-size:12px; letter-spacing:.06em;
+                  display:flex; align-items:center; gap:8px; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .featbar { margin: 9px 0; }
+  .featbar .fl { font-family:var(--mono); font-size:10.5px; color: var(--muted); display:flex;
+                 justify-content:space-between; margin-bottom:3px; letter-spacing:.04em; }
+  .track2 { height:9px; border-radius: 6px; background: var(--panel-2); overflow:hidden; position:relative; }
+  .fill { height:100%; border-radius:6px; transition: width .45s cubic-bezier(.3,.8,.3,1); }
+  .simline { font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-top: 12px;
+             display:flex; justify-content:space-between; }
+
+  /* exemplar viz */
+  .knobs { display:flex; gap:22px; justify-content:center; align-items:flex-end; height: 150px;
+           padding: 6px 0 4px; }
+  .knob { display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .knob .bar { width: 30px; background: linear-gradient(180deg,var(--accent),var(--accent-d));
+               border-radius: 7px 7px 3px 3px; transition: height .45s cubic-bezier(.3,.8,.3,1); min-height: 4px; }
+  .knob .kl { font-family:var(--mono); font-size:11px; color: var(--ink-soft); }
+  .knob .kv { font-family:var(--mono); font-size:10.5px; color: var(--muted); font-variant-numeric:tabular-nums; }
+  .mem-grid { display:grid; grid-template-columns: repeat(8, 1fr); gap:8px; margin-top: 10px; }
+  .mem-cell { background: var(--ground); border:1px solid var(--line); border-radius:9px; padding:7px 4px 5px;
+              text-align:center; transition: box-shadow .2s, border-color .2s, transform .2s; }
+  .mem-cell .assoc { height:6px; border-radius:4px; margin-top:6px; background: var(--panel-2); position:relative; overflow:hidden; }
+  .mem-cell .assoc i { position:absolute; top:0; bottom:0; }
+  .mem-cell .mc { font-family:var(--mono); font-size:9px; color: var(--muted); margin-top:4px; letter-spacing:.04em; }
+
+  /* rule viz */
+  .rule-now { background: var(--ground); border:1px solid var(--line); border-radius:12px; padding: 18px 18px;
+              text-align:center; margin-bottom: 16px; }
+  .rule-now .lab { font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .rule-now .sentence { font-family:var(--serif); font-size: 1.3rem; margin-top:8px; color: var(--ink); line-height:1.35; }
+  .rule-now .sentence b { color: var(--accent); }
+  .hyp-list { display:grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .hyp { font-family:var(--mono); font-size:11.5px; padding:7px 10px; border-radius:8px;
+         border:1px solid var(--line); background: var(--ground); color: var(--ink-soft);
+         display:flex; justify-content:space-between; gap:8px; transition: all .2s; }
+  .hyp.active { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 14%, transparent); color: var(--ink); }
+  .hyp.dead { opacity:.4; text-decoration: line-through; }
+  .hyp .cons { color: var(--muted); }
+
+  /* sparkline */
+  .spark-wrap { margin-top: 4px; }
+  .spark-lab { font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+               color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between; }
+
+  /* answer key */
+  .key-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:20px; }
+  .key-col { background: var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .key-col h4 { margin:0 0 12px; font-family:var(--mono); font-size:12px; letter-spacing:.06em;
+                display:flex; align-items:center; gap:8px; }
+  .key-cards { display:flex; gap:10px; flex-wrap:wrap; }
+
+  /* scoreboard */
+  .board { width:100%; border-collapse: collapse; font-family:var(--mono); font-size: 12.5px; margin-top: 18px; }
+  .board th, .board td { padding: 9px 8px; text-align:center; border-bottom:1px solid var(--line); }
+  .board th { color: var(--muted); font-weight:400; letter-spacing:.08em; font-size:11px; text-transform:uppercase; }
+  .board td.model { text-align:left; font-family:var(--serif); font-size:14px; color: var(--ink); white-space:nowrap; }
+  .board td.model small { display:block; font-family:var(--mono); font-size:10.5px; color:var(--muted); letter-spacing:.02em; }
+  .board .cell { position:relative; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .board .cell span { position:relative; z-index:2; }
+  .board .cell i { position:absolute; inset: 3px; border-radius: 5px; z-index:1; }
+  .board td.match { font-family:var(--sans); font-size:12px; font-weight:600; }
+  .board td.match.yes { color: var(--good); }
+  .board td.match.no  { color: var(--bad); }
+  .legend-note { font-family:var(--mono); font-size:11px; color: var(--muted); margin-top:12px; }
+
+  .callout {
+    background: var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius: 0 12px 12px 0; padding: 18px 22px; margin-top: 24px;
+  }
+  .callout p { margin: 0; color: var(--ink-soft); }
+  .callout p + p { margin-top: 10px; }
+
+  footer { padding: 40px 0 60px; color: var(--muted); font-family:var(--mono); font-size: 12px; }
+  footer a { color: var(--ink-soft); }
+
+  .theme-toggle {
+    position: fixed; top: 16px; right: 16px; z-index: 20;
+    font-family:var(--mono); font-size: 11px; letter-spacing:.1em;
+    background: var(--panel); border:1px solid var(--line); color: var(--ink-soft);
+    border-radius: 20px; padding: 7px 13px; cursor:pointer;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+
+<button class="theme-toggle" id="themeBtn" aria-label="Toggle light / dark theme">◐ THEME</button>
+
+<header class="hero">
+  <div class="wrap prose">
+    <p class="eyebrow">CS 6795 · Cognitive Science · a field guide</p>
+    <h1>How the three models actually learn</h1>
+    <p class="lead">Same task, same feedback, same 8 cards — three completely different ways of
+      making sense of them. Press <b class="mono" style="color:var(--accent)">Step</b> below and
+      watch each model's mind change, one card at a time.</p>
+    <p class="kicker">A companion to the results site — this one is about the <b>mechanism</b>,
+      not the score.</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap prose">
+    <p class="eyebrow">The material</p>
+    <h2>Eight cards, three features</h2>
+    <p>Every card differs on just three yes/no features — its <strong>size</strong>, its
+      <strong>shape</strong>, and its <strong>shade</strong>. Three switches, two settings each,
+      gives exactly <strong>8 possible cards</strong>. That's the whole deck. A card's identity is a
+      three-digit code like <span class="mono">1&middot;0&middot;1</span> = large, round, solid.</p>
+    <div class="stim-rail" id="stimRail"></div>
+    <p style="margin-top:22px">The job the model is given: sort these 8 cards into <strong>two piles
+      of four</strong> — pile <b style="color:var(--catA)">A</b> and pile
+      <b style="color:var(--catB)">B</b> — using only the yes/no answer it gets after each guess.
+      <strong>Which four go where is the puzzle</strong>, and there are six famous puzzles
+      (Types&nbsp;I–VI), each a different logic. You'll pick one on the bench.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap prose">
+    <p class="eyebrow">The loop everyone runs</p>
+    <h2>One trial, five beats</h2>
+    <p>All three models sit inside the <em>identical</em> training loop. They differ only in what
+      happens at beat&nbsp;2 and beat&nbsp;4 — how they guess, and how they change. Everything else
+      is shared.</p>
+  </div>
+  <div class="wrap">
+    <div class="loop">
+      <div class="step"><div class="n">BEAT 1</div><h4>Show a card</h4><p>One of the 8 cards appears in random order.</p></div>
+      <div class="step"><div class="n">BEAT 2</div><h4>Guess a pile</h4><p>The model commits to A or B — its own way.</p></div>
+      <div class="step"><div class="n">BEAT 3</div><h4>Hear the truth</h4><p>"Correct" or "wrong" — the real pile is revealed.</p></div>
+      <div class="step"><div class="n">BEAT 4</div><h4>Adjust</h4><p>The model nudges its insides — its own way.</p></div>
+      <div class="step"><div class="n">BEAT 5</div><h4>Repeat</h4><p>All 8 = one <em>block</em>. Count mistakes until a clean block.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="prose" style="margin-bottom:22px">
+      <p class="eyebrow">The bench · live</p>
+      <h2>Watch a model learn</h2>
+      <p>Pick a puzzle and a model, then <strong>Step</strong> through trials (or hit
+        <strong>Play</strong>). The left panel is the trial; the right panel is the model's actual
+        insides, updating for real. The <strong>Exemplar</strong> model has an attention switch —
+        flip it and re-run Type&nbsp;II to feel what attention buys.</p>
+    </div>
+
+    <div class="bench">
+      <div class="bench-bar">
+        <div class="ctl-group">
+          <span class="ctl-label">Puzzle</span>
+          <div class="seg types" id="typeSeg" role="group" aria-label="Category structure">
+            <button data-type="I"   aria-pressed="true">I</button>
+            <button data-type="II"  aria-pressed="false">II</button>
+            <button data-type="III" aria-pressed="false">III</button>
+            <button data-type="IV"  aria-pressed="false">IV</button>
+            <button data-type="V"   aria-pressed="false">V</button>
+            <button data-type="VI"  aria-pressed="false">VI</button>
+          </div>
+        </div>
+        <div class="ctl-group">
+          <span class="ctl-label">Model</span>
+          <div class="tabs" id="modelTabs" role="group" aria-label="Model">
+            <button data-model="prototype" aria-pressed="true">Prototype</button>
+            <button data-model="exemplar"  aria-pressed="false">Exemplar</button>
+            <button data-model="rule"      aria-pressed="false">Rule</button>
+          </div>
+        </div>
+        <label class="switch disabled" id="attnSwitch">
+          <input type="checkbox" id="attnChk" checked>
+          <span class="track"></span>
+          <span class="txt">attention</span>
+        </label>
+        <div class="ctl-group" style="margin-left:auto">
+          <button class="btn" id="stepBtn">Step ▸</button>
+          <button class="btn primary" id="playBtn" aria-pressed="false">Play ▸▸</button>
+          <button class="btn" id="resetBtn">Reset ↺</button>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-left">
+          <div class="trial-head"><span>TRIAL</span><span id="trialLabel">— · block 0</span></div>
+          <div class="cardstage">
+            <div class="cardframe" id="cardFrame"><span style="color:var(--muted);font-family:var(--mono);font-size:12px">press Step</span></div>
+            <div class="card-code" id="cardCode">&nbsp;</div>
+          </div>
+          <div class="verdict">
+            <div class="vrow"><span class="k">model guessed</span><span class="pill wait" id="guessPill">—</span></div>
+            <div class="vrow"><span class="k">true pile</span><span class="pill wait" id="truthPill">—</span></div>
+            <div class="vrow"><span class="k">outcome</span><span class="pill wait" id="outcomePill">—</span></div>
+          </div>
+          <div class="counters">
+            <div class="counter"><div class="big" id="errCount">0</div><div class="lab">errors so far</div></div>
+            <div class="counter"><div class="big" id="blockCount">0</div><div class="lab">blocks run</div></div>
+          </div>
+          <div class="spark-wrap">
+            <div class="spark-lab"><span>errors / block</span><span id="sparkNote"></span></div>
+            <svg id="spark" width="100%" height="46" viewBox="0 0 260 46" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+
+        <div class="stage-right">
+          <p class="narrate" id="narrate">Choose a puzzle and a model, then press <span class="em">Step</span>. I'll narrate every move.</p>
+          <div id="vizHost"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top:20px">
+      <p class="eyebrow" style="margin-bottom:8px">Answer key · this puzzle</p>
+      <p style="margin:0">The correct split for the puzzle you've selected. The model can't see this —
+        it has to <em>reconstruct</em> it from feedback.</p>
+    </div>
+    <div class="key-grid" id="keyGrid"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="prose">
+      <p class="eyebrow">The verdict</p>
+      <h2>Only one shape of mind learns like ours</h2>
+      <p>Run every model on every puzzle and count the mistakes. People find them
+        <strong>I &lt; II &lt; III&nbsp;≈&nbsp;IV&nbsp;≈&nbsp;V &lt; VI</strong> — and famously, Type&nbsp;II
+        (a two-feature XOR) is <em>easier</em> for people than the single-feature-plus Types III–V.
+        Here's what each model does with the same six puzzles, computed live in your browser:</p>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="board" id="board">
+        <thead>
+          <tr><th style="text-align:left">Model</th><th>I</th><th>II</th><th>III</th><th>IV</th><th>V</th><th>VI</th><th>Human order?</th></tr>
+        </thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+    </div>
+    <p class="legend-note" id="boardNote">Cells show mean total errors to learn (lower = easier). Bar length ∝ errors. Computing…</p>
+
+    <div class="callout">
+      <p><strong>The one line to remember.</strong> The <em>prototype</em> keeps a single average card
+        per pile — so when the two averages collide (Types II and VI) it's blind. The <em>rule</em>
+        seeker wants a tidy logical rule, and since no simple rule cracks Type&nbsp;II, it thrashes —
+        the exact opposite of people. Only the <em>exemplar</em> model, <strong>and only with
+        attention turned on</strong>, makes Type&nbsp;II easy the way we do: it learns to
+        <em>ignore</em> the useless feature and lock onto the two that matter.</p>
+      <p>Flip the attention switch off on the bench and re-run Type&nbsp;II — you'll watch that
+        advantage evaporate. That single switch is the whole thesis.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Models implemented live in-page — prototype (running means), exemplar (ALCOVE: Kruschke 1992),
+    rule (win-stay / lose-shift). Structures: Shepard, Hovland &amp; Jenkins (1961). Paradigm:
+    Nosofsky et&nbsp;al. (1994). &nbsp;·&nbsp; Rabea Abdelwahab · Georgia Tech.
+  </div>
+</footer>
+
+<script>
+"use strict";
+(function(){
+  /* ---------- theme toggle ---------- */
+  var root = document.documentElement, tb = document.getElementById('themeBtn');
+  tb.addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme');
+    if(!cur){ cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'; }
+    root.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  });
+
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ============================================================= *
+   *  Domain: 8 stimuli, 6 structures                              *
+   * ============================================================= */
+  var N = 8;
+  var STIM = [];
+  for(var i=0;i<N;i++){ STIM.push([(i>>2)&1,(i>>1)&1,i&1]); }
+
+  // Category A (label 0) index sets. B (label 1) is the rest.
+  var CAT_A = {
+    "I":  [0,1,2,3], "II": [0,1,6,7], "III":[0,1,2,7],
+    "IV": [0,1,2,4], "V":  [0,1,2,5], "VI": [0,3,5,6]
+  };
+  var TYPES = ["I","II","III","IV","V","VI"];
+  function labelsFor(t){ var s={}; CAT_A[t].forEach(function(i){s[i]=1;});
+    return STIM.map(function(_,i){ return s[i]?0:1; }); }
+
+  // feature vocabulary
+  var FEAT = [
+    {name:"size",  neg:"small", pos:"large"},
+    {name:"shape", neg:"round", pos:"square"},
+    {name:"shade", neg:"open",  pos:"solid"}
+  ];
+
+  /* ---------- card rendering (SVG) ---------- */
+  function cardSVG(bits, px){
+    px = px || 56;
+    var big = bits[0]===1, square = bits[1]===1, solid = bits[2]===1;
+    var s = big ? px*0.66 : px*0.42;
+    var cx = px/2, cy = px/2;
+    var stroke = "var(--ink-soft)";
+    var fill = solid ? "var(--ink-soft)" : "none";
+    var shape;
+    if(square){
+      var x = cx - s/2, y = cy - s/2;
+      shape = '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+s.toFixed(1)+'" height="'+s.toFixed(1)+'" rx="3" fill="'+fill+'" stroke="'+stroke+'" stroke-width="2"/>';
+    } else {
+      shape = '<circle cx="'+cx+'" cy="'+cy+'" r="'+(s/2).toFixed(1)+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="2"/>';
+    }
+    return '<svg class="card-svg" width="'+px+'" height="'+px+'" viewBox="0 0 '+px+' '+px+'" aria-hidden="true">'+shape+'</svg>';
+  }
+  function codeOf(bits){ return bits.join('·'); }
+
+  /* fill stimulus rail */
+  (function(){
+    var host = document.getElementById('stimRail');
+    STIM.forEach(function(b){
+      var d = document.createElement('div'); d.className='stim-chip';
+      d.innerHTML = cardSVG(b,54) + '<div class="code">'+codeOf(b)+'</div>';
+      host.appendChild(d);
+    });
+  })();
+
+  /* ============================================================= *
+   *  Models — real implementations                                *
+   * ============================================================= */
+
+  // -- Prototype: running mean per category, city-block similarity --
+  function PrototypeModel(){
+    this.kind='prototype'; this.c=2.0; this.reset();
+  }
+  PrototypeModel.prototype.reset=function(){
+    this.sumA=[0,0,0]; this.nA=0; this.sumB=[0,0,0]; this.nB=0;
+  };
+  PrototypeModel.prototype.protoA=function(){ return this.nA? this.sumA.map(function(v){return v/this.nA;},this):null; };
+  PrototypeModel.prototype.protoB=function(){ return this.nB? this.sumB.map(function(v){return v/this.nB;},this):null; };
+  PrototypeModel.prototype._sim=function(x,p){ if(!p) return null;
+    var d=0; for(var k=0;k<3;k++){ d+=Math.abs(x[k]-p[k]); } return Math.exp(-this.c*d); };
+  PrototypeModel.prototype.pA=function(idx){
+    var x=STIM[idx], sa=this._sim(x,this.protoA()), sb=this._sim(x,this.protoB());
+    if(sa===null&&sb===null) return 0.5;
+    if(sa===null) return 0.1; if(sb===null) return 0.9;
+    return sa/(sa+sb);
+  };
+  PrototypeModel.prototype.update=function(idx,truth){
+    var x=STIM[idx];
+    if(truth===0){ for(var k=0;k<3;k++) this.sumA[k]+=x[k]; this.nA++; }
+    else         { for(var k2=0;k2<3;k2++) this.sumB[k2]+=x[k2]; this.nB++; }
+  };
+
+  // -- Exemplar: ALCOVE (Kruschke 1992) --
+  function ALCOVE(attn){
+    this.kind='exemplar'; this.c=6.5; this.phi=2.0; this.lw=0.03;
+    this.la = attn ? 0.0033 : 0.0; this.reset();
+  }
+  ALCOVE.prototype.reset=function(){
+    this.alpha=[1/3,1/3,1/3];
+    this.w=[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]; // w[cat][exemplar]
+    this._h=null;
+  };
+  ALCOVE.prototype._hidden=function(x){
+    var h=[]; for(var j=0;j<N;j++){ var p=STIM[j], d=0;
+      for(var k=0;k<3;k++){ d+=this.alpha[k]*Math.abs(p[k]-x[k]); }
+      h.push(Math.exp(-this.c*d)); } return h;
+  };
+  ALCOVE.prototype._out=function(h){
+    var oA=0,oB=0; for(var j=0;j<N;j++){ oA+=this.w[0][j]*h[j]; oB+=this.w[1][j]*h[j]; }
+    return [oA,oB];
+  };
+  ALCOVE.prototype.pA=function(idx){
+    var h=this._hidden(STIM[idx]); this._h=h; var o=this._out(h);
+    var a=Math.exp(this.phi*o[0]), b=Math.exp(this.phi*o[1]); return a/(a+b);
+  };
+  ALCOVE.prototype.update=function(idx,truth){
+    var x=STIM[idx], h=this._hidden(x), o=this._out(h), oA=o[0], oB=o[1];
+    var tA = (truth===0)? Math.max(oA,1):Math.min(oA,-1);
+    var tB = (truth===1)? Math.max(oB,1):Math.min(oB,-1);
+    var eA=tA-oA, eB=tB-oB;
+    if(this.la>0){
+      var grad=[0,0,0];
+      for(var j=0;j<N;j++){ var d=eA*this.w[0][j]+eB*this.w[1][j], p=STIM[j];
+        for(var k=0;k<3;k++){ grad[k]+= d*h[j]*this.c*Math.abs(p[k]-x[k]); } }
+      for(var k2=0;k2<3;k2++){ this.alpha[k2]-=this.la*grad[k2]; if(this.alpha[k2]<0)this.alpha[k2]=0; }
+    }
+    for(var j2=0;j2<N;j2++){ this.w[0][j2]+=this.lw*eA*h[j2]; this.w[1][j2]+=this.lw*eB*h[j2]; }
+    this._h=this._hidden(x);
+  };
+
+  // -- Rule: win-stay / lose-shift over simple hypotheses --
+  function buildHyps(){
+    var list=[], seen={};
+    // single feature
+    for(var d=0; d<3; d++){ for(var v=0; v<2; v++){
+      var vec=STIM.map(function(b){ return b[d]===v?0:1; });
+      var key=vec.join('');
+      if(!seen[key]){ seen[key]=1;
+        list.push({feat:1, vec:vec, desc:'pile A if <b>'+FEAT[d].name+'</b> is <b>'+(v?FEAT[d].pos:FEAT[d].neg)+'</b>', short:FEAT[d].name+'='+(v?FEAT[d].pos:FEAT[d].neg)}); }
+    }}
+    // two-feature conjunctions
+    for(var d1=0; d1<3; d1++){ for(var d2=d1+1; d2<3; d2++){
+      for(var a=0;a<2;a++){ for(var b2=0;b2<2;b2++){
+        var vec2=STIM.map(function(bb){ return (bb[d1]===a && bb[d2]===b2)?0:1; });
+        var key2=vec2.join('');
+        if(!seen[key2]){ seen[key2]=1;
+          list.push({feat:2, vec:vec2,
+            desc:'pile A if <b>'+FEAT[d1].name+'</b> is <b>'+(a?FEAT[d1].pos:FEAT[d1].neg)+'</b> and <b>'+FEAT[d2].name+'</b> is <b>'+(b2?FEAT[d2].pos:FEAT[d2].neg)+'</b>',
+            short:FEAT[d1].name+'&'+FEAT[d2].name});
+        }
+      }}
+    }}
+    return list;
+  }
+  var HYPS = buildHyps();
+
+  function RuleModel(){ this.kind='rule'; this.hyps=HYPS; this.reset(); }
+  RuleModel.prototype.reset=function(){ this.seen={}; this.cur=null; this.lastConsistency=[]; };
+  RuleModel.prototype.pA=function(idx){ if(this.cur===null) return 0.5; return this.cur.vec[idx]===0?1:0; };
+  RuleModel.prototype._consistent=function(h){ for(var i in this.seen){ if(h.vec[i]!==this.seen[i]) return false; } return true; };
+  RuleModel.prototype._count=function(h){ var c=0; for(var i in this.seen){ if(h.vec[i]===this.seen[i]) c++; } return c; };
+  RuleModel.prototype.update=function(idx,truth){
+    this.seen[idx]=truth;
+    if(this.cur && this._consistent(this.cur)) return; // win-stay
+    // lose-shift: simplest hypothesis with max consistency
+    var best=[], bestScore=-1;
+    for(var j=0;j<this.hyps.length;j++){ var h=this.hyps[j], c=this._count(h);
+      // score prioritises consistency, then simplicity
+      var sc=c*10 - h.feat;
+      if(sc>bestScore){ bestScore=sc; best=[h]; }
+      else if(sc===bestScore){ best.push(h); }
+    }
+    this.cur = best[Math.floor(Math.random()*best.length)];
+  };
+
+  function makeModel(kind, attn){
+    if(kind==='prototype') return new PrototypeModel();
+    if(kind==='exemplar')  return new ALCOVE(attn);
+    return new RuleModel();
+  }
+
+  /* ============================================================= *
+   *  Silent runner (for scoreboard)                               *
+   * ============================================================= */
+  function runSilent(kind, attn, type, subjects, blocks){
+    var lab=labelsFor(type), total=0;
+    for(var s=0;s<subjects;s++){
+      var m=makeModel(kind,attn);
+      for(var bl=0; bl<blocks; bl++){
+        var order=[0,1,2,3,4,5,6,7];
+        for(var q=order.length-1;q>0;q--){ var r=Math.floor(Math.random()*(q+1)); var t=order[q];order[q]=order[r];order[r]=t; }
+        for(var oi=0; oi<order.length; oi++){ var idx=order[oi];
+          var p=m.pA(idx), guess=(Math.random()<p)?0:1, truth=lab[idx];
+          if(guess!==truth) total++;
+          m.update(idx,truth);
+        }
+      }
+    }
+    return total/subjects;
+  }
+
+  /* ============================================================= *
+   *  Live bench state                                             *
+   * ============================================================= */
+  var S = {
+    type:'I', kind:'prototype', attn:true,
+    model:null, labels:null, order:[], ptr:0,
+    errors:0, block:0, errThisBlock:0, hist:[], playing:false, timer:null
+  };
+
+  function freshOrder(){ var o=[0,1,2,3,4,5,6,7];
+    for(var q=o.length-1;q>0;q--){ var r=Math.floor(Math.random()*(q+1)); var t=o[q];o[q]=o[r];o[r]=t; } return o; }
+
+  function rebuild(){
+    stopPlay();
+    S.model = makeModel(S.kind, S.attn);
+    S.labels = labelsFor(S.type);
+    S.order = freshOrder(); S.ptr=0;
+    S.errors=0; S.block=0; S.errThisBlock=0; S.hist=[];
+    renderCounters(); renderSpark();
+    // reset trial panel
+    document.getElementById('trialLabel').textContent='— · block 0';
+    var cf=document.getElementById('cardFrame'); cf.className='cardframe';
+    cf.innerHTML='<span style="color:var(--muted);font-family:var(--mono);font-size:12px">press Step</span>';
+    document.getElementById('cardCode').innerHTML='&nbsp;';
+    setPill('guessPill','wait','—'); setPill('truthPill','wait','—'); setPill('outcomePill','wait','—');
+    narrate('New run — <span class="em">'+labelName()+'</span> on Type&nbsp;'+S.type+'. Press <span class="em">Step</span>.');
+    renderViz(true);
+    renderKey();
+  }
+
+  function labelName(){ return S.kind==='prototype'?'Prototype':(S.kind==='exemplar'?('Exemplar'+(S.attn?' + attention':' (attention off)')):'Rule seeker'); }
+
+  var MAX_BLOCKS = 25;
+
+  function step(){
+    if(S.block>=MAX_BLOCKS){ narrate('Reached the '+MAX_BLOCKS+'-block horizon. <span class="em">Reset</span> to run again.'); stopPlay(); return; }
+    if(S.ptr>=S.order.length){ // close block
+      S.hist.push(S.errThisBlock); S.block++; S.errThisBlock=0; S.order=freshOrder(); S.ptr=0;
+      renderCounters(); renderSpark();
+      if(S.block>=MAX_BLOCKS){ narrate('Done — '+MAX_BLOCKS+' blocks, <b>'+S.errors+'</b> total errors. <span class="em">Reset</span> to try another.'); stopPlay(); return; }
+    }
+    var idx = S.order[S.ptr++];
+    var bits = STIM[idx], truth = S.labels[idx];
+    var p = S.model.pA(idx);
+    var guess = (Math.random()<p)?0:1;
+    var correct = guess===truth;
+    if(!correct){ S.errors++; S.errThisBlock++; }
+
+    // --- render trial ---
+    document.getElementById('trialLabel').textContent = 'card '+codeOf(bits)+' · block '+(S.block+1);
+    var cf=document.getElementById('cardFrame');
+    cf.className='cardframe live'+(reduced?'':' card-enter');
+    cf.innerHTML=cardSVG(bits,92);
+    document.getElementById('cardCode').textContent=codeOf(bits);
+    setPill('guessPill', guess===0?'a':'b', guess===0?'pile A':'pile B');
+    setPill('truthPill', truth===0?'a':'b', truth===0?'pile A':'pile B');
+    setPill('outcomePill', correct?'good':'bad', correct?'✓ correct':'✗ wrong', true);
+
+    // --- model adjusts ---
+    var before = snapshot();
+    S.model.update(idx, truth);
+    renderCounters();
+    narrateTrial(idx, bits, guess, truth, correct, p, before);
+    renderViz(false, idx);
+  }
+
+  function snapshot(){
+    if(S.kind==='exemplar') return S.model.alpha.slice();
+    if(S.kind==='prototype') return {a:S.model.protoA(), b:S.model.protoB()};
+    return S.model.cur;
+  }
+
+  /* ---------- narration ---------- */
+  function narrate(html){ document.getElementById('narrate').innerHTML=html; }
+  function pct(x){ return Math.round(x*100); }
+  function narrateTrial(idx,bits,guess,truth,correct,p,before){
+    var lean = p>0.5 ? 'A' : (p<0.5?'B':'neither');
+    var conf = Math.round(Math.abs(p-0.5)*200); // 0..100
+    var base = 'Card <b class="mono">'+codeOf(bits)+'</b> — ';
+    if(S.kind==='prototype'){
+      var msg;
+      if(before.a && before.b){
+        msg='it compared the card to both average cards ('+pct(p)+'% lean to A) and '+(correct?'guessed right':'guessed wrong')+'. The '+(truth===0?'A':'B')+'-average now shifts a little toward this card.';
+      } else {
+        msg='too early to have both averages yet — it '+(correct?'guessed right':'guessed wrong')+' and folded this card into pile&nbsp;'+(truth===0?'A':'B')+'’s running average.';
+      }
+      narrate(base+msg);
+    } else if(S.kind==='exemplar'){
+      var moved = attnMoved(before, S.model.alpha);
+      var t = correct?'Right':'Wrong';
+      narrate(base+t+' ('+pct(p)+'% toward A). It strengthened the links from nearby cards to pile&nbsp;'+(truth===0?'A':'B')+
+        (S.attn? (moved? ', and <span class="em">turned the attention knobs</span> to weight the useful features more.' : ', attention barely moved this time.') : '. <span class="em">Attention is frozen</span> — it can only re-weight the links, never the features.'));
+    } else {
+      var cur=S.model.cur;
+      if(correct){ narrate(base+'its current rule — <span class="em">'+(cur?stripB(cur.desc):'—')+'</span> — held up. <b>Win, stay.</b>'); }
+      else { narrate(base+'its rule just failed. <b>Lose, shift</b> → it jumped to the simplest rule still consistent with everything seen: <span class="em">'+(cur?stripB(cur.desc):'—')+'</span>.'); }
+    }
+  }
+  function stripB(html){ return html.replace(/<\/?b>/g,''); }
+  function attnMoved(before,after){ var d=0; for(var k=0;k<3;k++) d+=Math.abs(before[k]-after[k]); return d>0.002; }
+
+  /* ---------- pills / counters ---------- */
+  function setPill(id, cls, txt, flash){
+    var el=document.getElementById(id);
+    el.className='pill '+cls+(flash&&!reduced?' flash':'');
+    el.textContent=txt;
+  }
+  function renderCounters(){
+    document.getElementById('errCount').textContent=S.errors;
+    document.getElementById('blockCount').textContent=S.block;
+  }
+  function renderSpark(){
+    var svg=document.getElementById('spark'); var W=260,H=46,pad=4;
+    var h=S.hist;
+    if(h.length===0){ svg.innerHTML='<line x1="0" y1="'+(H-pad)+'" x2="'+W+'" y2="'+(H-pad)+'" stroke="var(--line)" stroke-width="1"/>'; document.getElementById('sparkNote').textContent=''; return; }
+    var maxE=Math.max(4, Math.max.apply(null,h));
+    var n=Math.max(h.length, 2);
+    var pts=h.map(function(v,i){ var x=pad+(W-2*pad)*(i/(Math.max(1,MAX_BLOCKS-1)));
+      var y=H-pad-(H-2*pad)*(v/maxE); return [x,y]; });
+    var d='M'+pts.map(function(p){return p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' L');
+    var dots=pts.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2" fill="var(--accent)"/>';}).join('');
+    var last=h[h.length-1];
+    svg.innerHTML='<polyline points="'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join(' ')+'" fill="none" stroke="var(--accent)" stroke-width="1.6"/>'+dots;
+    document.getElementById('sparkNote').textContent='last: '+last+' err';
+  }
+
+  /* ============================================================= *
+   *  Per-model viz panels                                         *
+   * ============================================================= */
+  var host = document.getElementById('vizHost');
+
+  function renderViz(fresh, idx){
+    if(S.kind==='prototype') vizPrototype(idx);
+    else if(S.kind==='exemplar') vizExemplar(idx);
+    else vizRule(idx);
+  }
+
+  function bar(fill, pctv, color){ return '<div class="track2"><div class="fill" style="width:'+pctv+'%;background:'+color+'"></div></div>'; }
+
+  function vizPrototype(idx){
+    var m=S.model, pa=m.protoA(), pb=m.protoB();
+    function col(p,color,name,n){
+      var rows=FEAT.map(function(f,k){
+        var v = p? p[k] : 0;
+        return '<div class="featbar"><div class="fl"><span>'+f.name+'</span><span>'+(p?v.toFixed(2):'—')+'</span></div>'+bar(0,(p?v*100:0),color)+'</div>';
+      }).join('');
+      return '<div class="proto-col"><h5><span class="dot" style="background:'+color+'"></span>'+name+' average <span style="color:var(--muted);margin-left:auto;font-size:10px">'+n+' cards</span></h5>'+rows+'</div>';
+    }
+    var sim='';
+    if(idx!=null){ var x=STIM[idx], sa=m._sim(x,pa), sb=m._sim(x,pb);
+      sim='<div class="simline"><span>sim → A: <b style="color:var(--catA)">'+(sa==null?'—':sa.toFixed(2))+'</b></span><span>sim → B: <b style="color:var(--catB)">'+(sb==null?'—':sb.toFixed(2))+'</b></span></div>';
+    }
+    var collide='';
+    if(pa&&pb){ var d=0; for(var k=0;k<3;k++) d+=Math.abs(pa[k]-pb[k]);
+      if(d<0.35){ collide='<p style="font-family:var(--mono);font-size:11.5px;color:var(--bad);margin:14px 0 0">⚠ the two averages have nearly collided — the model is going blind (this is why Types II &amp; VI break it).</p>'; }
+    }
+    host.innerHTML='<p class="panel-title">Inside · two average cards</p><div class="proto-grid">'+
+      col(pa,'var(--catA)','Pile A', m.nA)+col(pb,'var(--catB)','Pile B', m.nB)+'</div>'+sim+collide;
+  }
+
+  function vizExemplar(idx){
+    var m=S.model, tot=m.alpha[0]+m.alpha[1]+m.alpha[2]||1;
+    var maxA=Math.max(m.alpha[0],m.alpha[1],m.alpha[2],0.001);
+    var knobs=FEAT.map(function(f,k){
+      var hgt=Math.round(18+ (m.alpha[k]/maxA)*100);
+      return '<div class="knob"><div class="bar" style="height:'+hgt+'px"></div><div class="kl">'+f.name+'</div><div class="kv">'+m.alpha[k].toFixed(2)+'</div></div>';
+    }).join('');
+    // memory cells: activation for current card + association A/B
+    var h = idx!=null ? m._hidden(STIM[idx]) : null;
+    var cells='';
+    for(var j=0;j<N;j++){
+      var assoc = m.w[0][j]-m.w[1][j]; // >0 → A
+      var mag = Math.min(1, Math.abs(assoc)/1.2);
+      var col = assoc>=0? 'var(--catA)':'var(--catB)';
+      var w = Math.round(mag*100);
+      var side = assoc>=0? 'left:50%;width:'+(w/2)+'%' : 'right:50%;width:'+(w/2)+'%';
+      var lit = h? h[j] : 0;
+      var glow = lit>0.25? 'border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) '+Math.round(lit*45)+'%,transparent)':'';
+      cells+='<div class="mem-cell" style="'+glow+'">'+cardSVG(STIM[j],30)+
+        '<div class="assoc"><i style="background:'+col+';'+side+'"></i></div>'+
+        '<div class="mc">'+codeOf(STIM[j])+'</div></div>';
+    }
+    var attnNote = S.attn
+      ? 'Knobs are <b style="color:var(--catA)">learning</b> — watch the useless feature sink.'
+      : 'Knobs are <b style="color:var(--bad)">frozen</b> at equal — attention can’t help.';
+    host.innerHTML='<p class="panel-title">Inside · attention knobs + card memory</p>'+
+      '<div class="knobs">'+knobs+'</div>'+
+      '<p style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin:2px 0 6px">'+attnNote+'</p>'+
+      '<div class="mem-grid">'+cells+'</div>'+
+      '<p style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:10px 0 0">Each slot = one possible card. Bar leans '+
+      '<b style="color:var(--catA)">A</b> / <b style="color:var(--catB)">B</b> as its link strengthens. A gold halo = the slot lit up by the current card.</p>';
+  }
+
+  function vizRule(idx){
+    var m=S.model;
+    var now = m.cur ? m.cur.desc : 'still guessing — no rule chosen yet';
+    // show the 6 single-feature rules as the candidate board
+    var singles = m.hyps.filter(function(h){return h.feat===1;});
+    var cards = singles.map(function(h){
+      var active = m.cur && m.cur.vec.join('')===h.vec.join('');
+      var consistent = m._consistent(h);
+      var cnt = m._count(h);
+      var cls = active?'hyp active':(consistent?'hyp':'hyp dead');
+      return '<div class="'+cls+'"><span>'+h.short+'</span><span class="cons">'+cnt+'/'+Object.keys(m.seen).length+'</span></div>';
+    }).join('');
+    var usingConj = m.cur && m.cur.feat===2;
+    host.innerHTML='<p class="panel-title">Inside · the current hypothesis</p>'+
+      '<div class="rule-now"><div class="lab">current rule</div><div class="sentence">'+now+'</div>'+
+      (usingConj?'<div style="font-family:var(--mono);font-size:10.5px;color:var(--accent);margin-top:8px">↳ fell back to a 2-feature rule</div>':'')+'</div>'+
+      '<p style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0 0 8px">single-feature candidates · number = cards it currently fits · struck-through = ruled out</p>'+
+      '<div class="hyp-list">'+cards+'</div>';
+  }
+
+  /* ============================================================= *
+   *  Answer key                                                   *
+   * ============================================================= */
+  function renderKey(){
+    var lab=labelsFor(S.type), host=document.getElementById('keyGrid');
+    function col(which,color,name){
+      var cards=STIM.map(function(b,i){ return lab[i]===which? '<div style="text-align:center">'+cardSVG(b,44)+'<div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">'+codeOf(b)+'</div></div>':''; }).join('');
+      return '<div class="key-col"><h4><span class="dot" style="background:'+color+'"></span>Pile '+name+'</h4><div class="key-cards">'+cards+'</div></div>';
+    }
+    host.innerHTML=col(0,'var(--catA)','A')+col(1,'var(--catB)','B');
+  }
+
+  /* ============================================================= *
+   *  Play / controls                                             *
+   * ============================================================= */
+  function stopPlay(){ S.playing=false; if(S.timer){clearTimeout(S.timer);S.timer=null;}
+    document.getElementById('playBtn').setAttribute('aria-pressed','false');
+    document.getElementById('playBtn').textContent='Play ▸▸'; }
+  function play(){
+    if(S.playing){ stopPlay(); return; }
+    S.playing=true;
+    document.getElementById('playBtn').setAttribute('aria-pressed','true');
+    document.getElementById('playBtn').textContent='Pause ❚❚';
+    var tick=function(){ if(!S.playing) return; step();
+      if(S.block>=MAX_BLOCKS){ stopPlay(); return; }
+      S.timer=setTimeout(tick, reduced?60:620); };
+    tick();
+  }
+
+  document.getElementById('stepBtn').addEventListener('click', function(){ stopPlay(); step(); });
+  document.getElementById('playBtn').addEventListener('click', play);
+  document.getElementById('resetBtn').addEventListener('click', rebuild);
+
+  document.getElementById('typeSeg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    S.type=b.dataset.type;
+    [].forEach.call(this.querySelectorAll('button'),function(x){x.setAttribute('aria-pressed', x===b?'true':'false');});
+    rebuild();
+  });
+  document.getElementById('modelTabs').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    S.kind=b.dataset.model;
+    [].forEach.call(this.querySelectorAll('button'),function(x){x.setAttribute('aria-pressed', x===b?'true':'false');});
+    var sw=document.getElementById('attnSwitch');
+    if(S.kind==='exemplar'){ sw.classList.remove('disabled'); } else { sw.classList.add('disabled'); }
+    rebuild();
+  });
+  document.getElementById('attnChk').addEventListener('change', function(){
+    S.attn=this.checked; rebuild();
+  });
+
+  /* ============================================================= *
+   *  Scoreboard (computed live, async so UI paints first)        *
+   * ============================================================= */
+  var MODEL_ROWS = [
+    {kind:'exemplar', attn:true,  name:'Exemplar', sub:'attention ON', star:true},
+    {kind:'exemplar', attn:false, name:'Exemplar', sub:'attention OFF'},
+    {kind:'prototype',attn:false, name:'Prototype', sub:'one average / pile'},
+    {kind:'rule',     attn:false, name:'Rule', sub:'simplest logical rule'}
+  ];
+  var HUMAN_RANK={I:1,II:2,III:3,IV:3,V:3,VI:4};
+  function ordersMatchHuman(vals){
+    // check I smallest, VI largest, II below the III/IV/V band mean
+    var band=(vals.III+vals.IV+vals.V)/3;
+    return vals.I<vals.II && vals.II<band && band<vals.VI && vals.I<band;
+  }
+  function buildBoard(){
+    var body=document.getElementById('boardBody');
+    var subjects=reduced?60:120, blocks=25;
+    var rows=MODEL_ROWS.map(function(r){
+      var vals={}; TYPES.forEach(function(t){ vals[t]=runSilent(r.kind,r.attn,t,subjects,blocks); });
+      return {r:r, vals:vals};
+    });
+    var globalMax=0;
+    rows.forEach(function(o){ TYPES.forEach(function(t){ if(o.vals[t]>globalMax) globalMax=o.vals[t]; }); });
+    body.innerHTML=rows.map(function(o){
+      var cells=TYPES.map(function(t){
+        var v=o.vals[t], w=Math.round((v/globalMax)*100);
+        var col = o.r.star? 'color-mix(in srgb,var(--accent) 30%, transparent)':'color-mix(in srgb,var(--catB) 22%, transparent)';
+        return '<td class="cell"><i style="width:'+w+'%;background:'+col+'"></i><span>'+v.toFixed(1)+'</span></td>';
+      }).join('');
+      var ok=ordersMatchHuman(o.vals);
+      var mcls= ok?'match yes':'match no';
+      var mtxt= ok?'✓ matches':'✗ no';
+      var nm='<td class="model">'+o.r.name+(o.r.star?' ★':'')+'<small>'+o.r.sub+'</small></td>';
+      return '<tr>'+nm+cells+'<td class="'+mcls+'">'+mtxt+'</td></tr>';
+    }).join('');
+    document.getElementById('boardNote').innerHTML='Mean total errors to learn each puzzle (lower = easier), '+subjects+' simulated learners each. '+
+      'Only <b style="color:var(--accent)">Exemplar + attention ★</b> reproduces the human order <b>I &lt; II &lt; {III,IV,V} &lt; VI</b>.';
+  }
+
+  /* ---------- boot ---------- */
+  rebuild();
+  // defer heavy scoreboard so the page paints immediately
+  setTimeout(buildBoard, 30);
+})();
+</script>
